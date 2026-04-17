@@ -1,0 +1,240 @@
+# Killer-Arduino
+Este es un concepto arduino que haria explotar un capacitor seria como un sist3ema que hace explotar el capacito y que estalle nop es tan peligroso pero si de todos modos seguiras mi idea ten cuidado y manten tu distancia a continuacion dejare las instrucciones para conectarlo y dejare el codigo listo para copiar en el arduino IDE 
+
+
+
+
+
+KILLER ARDUINO 
+Materiales
+Arduino Uno
+Pantalla LCD con módulo I2C
+2 botones
+3 LEDs
+3 resistencias (220Ω)
+1 buzzer
+Cables
+Protoboard
+Conexión de la pantalla LCD (I2C)
+GND → GND del Arduino
+VCC → 5V
+SDA → A4
+SCL → A5
+Conexión de los botones
+Botón 1 (activar sistema)
+Una pata → pin 7
+Otra pata → GND
+Botón 2 (ejecutar)
+Una pata → pin 8
+Otra pata → GND
+Conexión de los LEDs
+LED 1 (pin 9)
+Patita larga → resistencia → pin 9
+Patita corta → GND
+LED 2 (pin 10)
+Patita larga → resistencia → pin 10
+Patita corta → GND
+LED 3 (pin 11)
+Patita larga → resistencia → pin 11
+Patita corta → GND
+Conexión del buzzer
+Pin positivo → pin 6
+Pin negativo → GND
+Funcionamiento del sistema
+Al encender, la pantalla muestra “Sistema en línea”.
+Cuando se presiona el botón 1:
+Aparece “Preparando”
+Se muestra un contador de 5 a 1
+El LED del pin 9 parpadea con cada número
+Después muestra:
+“En línea”
+“Presione botón 2”
+El LED del pin 10 parpadea cada 3 segundos
+El buzzer suena con un tono grave al mismo ritmo
+Cuando se presiona el botón 2:
+Aparece “Bomba lista”
+Luego inicia cuenta regresiva 3, 2, 1
+Los LEDs (9 y 11) y el buzzer se aceleran de lento a rápido
+Al llegar a “BOOM”:
+Los LEDs parpadean de forma desordenada
+El buzzer hace sonidos rápidos con diferentes tonos
+Después aparecen caracteres aleatorios en la pantalla
+Finalmente:
+Se muestra “Aniquilación exitosa”
+Luego “Reiniciando…”
+El sistema vuelve al inicio
+Recomendaciones
+Usar resistencias en los LEDs para evitar que se dañen
+Revisar bien las conexiones antes de encender
+Asegurarse de que todos los GND estén conectados
+
+
+
+
+
+
+
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+int boton1 = 7;
+int boton2 = 8;
+int led1 = 9;
+int led2 = 10;
+int led3 = 11;
+int buzzer = 6;
+
+bool preparado = false;
+
+void setup() {
+  pinMode(boton1, INPUT_PULLUP);
+  pinMode(boton2, INPUT_PULLUP);
+  pinMode(led1, OUTPUT);
+  pinMode(led2, OUTPUT);
+  pinMode(led3, OUTPUT);
+  pinMode(buzzer, OUTPUT);
+
+  lcd.init();
+  lcd.backlight();
+
+  lcd.print("Sistema en linea");
+
+  randomSeed(analogRead(0));
+}
+
+void loop() {
+
+  // BOTON 1
+  if (digitalRead(boton1) == LOW && !preparado) {
+    preparado = true;
+
+    lcd.clear();
+    lcd.print("Preparando");
+
+    // contador 5 segundos
+    for (int i = 5; i > 0; i--) {
+      lcd.setCursor(0,1);
+      lcd.print("("); lcd.print(i); lcd.print(")   ");
+
+      digitalWrite(led1, HIGH);
+      digitalWrite(buzzer, HIGH);
+      delay(150);
+
+      digitalWrite(led1, LOW);
+      digitalWrite(buzzer, LOW);
+      delay(850);
+    }
+
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.print("En linea");
+    lcd.setCursor(0,1);
+    lcd.print("Presione boton 2");
+
+    digitalWrite(led1, LOW);
+  }
+
+  // modo en linea
+  if (preparado) {
+    digitalWrite(led2, HIGH);
+    tone(buzzer, 200); // tono grave
+    delay(1000);
+
+    digitalWrite(led2, LOW);
+    noTone(buzzer);
+    delay(2000);
+  }
+
+  // BOTON 2
+  if (digitalRead(boton2) == LOW && preparado) {
+
+    lcd.clear();
+    lcd.print("Bomba lista");
+
+    digitalWrite(buzzer, HIGH);
+    delay(150);
+    digitalWrite(buzzer, LOW);
+    delay(500);
+
+    int velocidad = 400;
+
+    // cuenta 3-2-1
+    for (int i = 3; i > 0; i--) {
+      lcd.clear();
+      lcd.print(i);
+
+      for (int j = 0; j < 8; j++) {
+        digitalWrite(led1, HIGH);
+        digitalWrite(led3, HIGH);
+        tone(buzzer, 400 + (3 - i) * 300);
+        delay(velocidad);
+
+        digitalWrite(led1, LOW);
+        digitalWrite(led3, LOW);
+        noTone(buzzer);
+        delay(velocidad);
+
+        velocidad -= 10;
+        if (velocidad < 40) velocidad = 40;
+      }
+    }
+
+    lcd.clear();
+    lcd.print("BOOM!");
+
+    // efecto 4 segundos
+    for (int i = 0; i < 60; i++) {
+      tone(buzzer, random(300, 2000));
+
+      digitalWrite(led1, random(0,2));
+      digitalWrite(led2, random(0,2));
+      digitalWrite(led3, random(0,2));
+
+      delay(50);
+    }
+
+    // pantalla aleatoria
+    for (int i = 0; i < 20; i++) {
+      lcd.clear();
+
+      for (int j = 0; j < 16; j++) {
+        lcd.setCursor(j, 0);
+        lcd.print(char(random(33, 126)));
+        lcd.setCursor(j, 1);
+        lcd.print(char(random(33, 126)));
+      }
+
+      tone(buzzer, random(300, 2000));
+
+      digitalWrite(led1, random(0,2));
+      digitalWrite(led2, random(0,2));
+      digitalWrite(led3, random(0,2));
+
+      delay(50);
+    }
+
+    noTone(buzzer);
+
+    lcd.clear();
+    lcd.print("Aniquilacion");
+    lcd.setCursor(0,1);
+    lcd.print("exitosa");
+
+    delay(2000);
+
+    // reinicio
+    digitalWrite(led1, LOW);
+    digitalWrite(led2, LOW);
+    digitalWrite(led3, LOW);
+
+    lcd.clear();
+    lcd.print("Reiniciando...");
+    delay(2000);
+
+    preparado = false;
+    lcd.clear();
+    lcd.print("Sistema en linea");
+  }
+}
